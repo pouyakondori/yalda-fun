@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { appsScriptConfig, sheetConfig } from '../config';
 import { useGoogleSheet } from '../hooks/useGoogleSheet';
 import { summarizeResponses } from '../utils/responses';
+import { LoadingScreen } from '../components/LoadingScreen';
 
 export default function Results() {
   const { endpoint, configured } = appsScriptConfig;
@@ -13,6 +14,10 @@ export default function Results() {
     [rows, columns],
   );
   const sheetConfigured = Boolean(endpoint && configured);
+
+  if (sheetConfigured && loading) {
+    return <LoadingScreen message="Pulling the latest RSVP board..." />;
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 space-y-6">
@@ -64,8 +69,9 @@ export default function Results() {
           </a>
         </div>
 
-        {loading && <p className="px-4 py-6 text-sm text-gray-500">Loading sheet data...</p>}
-
+        {loading && (
+          <p className="px-4 py-6 text-sm text-gray-500">Loading sheet data...</p>
+        )}
         {error && (
           <p className="px-4 py-6 text-sm text-red-600">
             Something went wrong while loading the sheet: {error}

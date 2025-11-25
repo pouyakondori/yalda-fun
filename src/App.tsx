@@ -9,7 +9,7 @@ function App() {
         <nav className="bg-white border-b border-rose-100">
           <div className="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
             <NavLink to="/" className="text-lg font-semibold text-rose-600">
-              Yalda Party
+              Porto Yalda Party
             </NavLink>
             <div className="flex items-center gap-3 text-sm font-medium">
               <NavLink

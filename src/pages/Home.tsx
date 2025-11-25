@@ -1,15 +1,34 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { DishCard } from '../components/DishCard';
 import { DEFAULT_DISH_CAPACITY, dishes } from '../data/dishes';
 import { appsScriptConfig, sheetConfig } from '../config';
 import { useGoogleSheet } from '../hooks/useGoogleSheet';
 import { summarizeResponses } from '../utils/responses';
+import { YALDA_IMAGE_URL } from '../constants';
 
 type SubmissionState = 'idle' | 'submitting' | 'success' | 'error';
 
-const description = [
-  'We are gathering on the longest night of the year for a cozy potluck-style Yalda dinner. Choose the dishes that you will bring so everyone can coordinate and no one over-cooks!',
-  'One dish per household is totally fine, but feel free to bring more if you want. Drinks and desserts are welcome too. Please submit the form once per household so we can keep the spreadsheet organized.',
+const descriptionSections = [
+  {
+    id: 'fa',
+    title: 'توضیحات',
+    bullets: [
+      'لطفاً یکی از غذاهای زیر را انتخاب کنید و برای مهمانی شب یلدا همراه خود بیاورید.',
+      'هر غذا ظرفیت محدودی دارد و پس از تکمیل ظرفیت قابل انتخاب نخواهد بود.',
+      'برای مثال: اگر خانواده‌ چهار نفره هستید، لطفاً مقدار کافی برای چهار نفر بیاورید.',
+    ],
+  },
+  {
+    id: 'en',
+    title: 'English Description',
+    bullets: [
+      'Please choose one dish from the list below to bring to the Yalda dinner.',
+      'Each dish has limited spots and will be unavailable once full.',
+      'For instance: If you are a family of four, please bring enough of your chosen dish for four people.',
+    ],
+  },
 ];
 
 export default function Home() {
@@ -18,6 +37,8 @@ export default function Home() {
   const [selectedDishIds, setSelectedDishIds] = useState<number[]>([]);
   const [status, setStatus] = useState<SubmissionState>('idle');
   const [message, setMessage] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const navigate = useNavigate();
 
   const { endpoint, configured } = appsScriptConfig;
   const { columns } = sheetConfig;
@@ -55,6 +76,20 @@ export default function Home() {
     }
     setSelectedDishIds((prev) => prev.filter((id) => !fullyBookedSet.has(id)));
   }, [fullyBookedSet]);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (showSuccessModal) {
+      timer = setTimeout(() => {
+        navigate('/results');
+      }, 3000);
+    }
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [showSuccessModal, navigate]);
 
   const selectedDishNames = useMemo(
     () =>
@@ -124,6 +159,7 @@ export default function Home() {
       setSelectedDishIds([]);
       setPartnerName('');
       setName('');
+      setShowSuccessModal(true);
     } catch (error) {
       console.error(error);
       setStatus('error');
@@ -131,10 +167,16 @@ export default function Home() {
     }
   };
 
+  const showLoader = configured && availabilityLoading;
+
+  if (showLoader) {
+    return <LoadingScreen message="Loading available dishes..." />;
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <header className="text-center space-y-2">
-        <p className="text-rose-500 text-sm font-semibold uppercase tracking-wide">Yalda Party</p>
+        <p className="text-rose-500 text-sm font-semibold uppercase tracking-wide">Yalda Party - 21 Dec. 2025</p>
         <h1 className="text-3xl font-semibold text-gray-900">Food Selection Form</h1>
         <p className="text-gray-600 text-sm">
           Fill out the form below and coordinate what you will bring to dinner.
@@ -142,9 +184,25 @@ export default function Home() {
       </header>
 
       <div className="mt-8 bg-gray-50 border border-gray-200 p-4 rounded-md text-sm leading-6 text-gray-700 space-y-3">
-        {description.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
+        <div className="space-y-3">
+          {descriptionSections.map(({ id, title, bullets }, index) => (
+            <details key={id} className="bg-white border border-gray-200 rounded-md" open={index === 0}>
+              <summary className="cursor-pointer select-none px-4 py-2 text-sm font-semibold text-gray-900">
+                {title}
+              </summary>
+              <ul
+                className={`px-6 pb-4 pt-2 text-sm text-gray-700 space-y-2 list-disc ${
+                  id === 'fa' ? 'pr-4' : 'pl-4'
+                }`}
+                dir={id === 'fa' ? 'rtl' : 'ltr'}
+              >
+                {bullets.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
+              </ul>
+            </details>
+          ))}
+        </div>
         <p className="text-gray-500">
           Need to double-check existing selections?{' '}
           <a className="underline text-rose-500" href="/results">
@@ -236,6 +294,20 @@ export default function Home() {
           {status === 'submitting' ? 'Submitting...' : 'Submit RSVP'}
         </button>
       </form>
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full text-center shadow-xl overflow-hidden">
+            <img src={YALDA_IMAGE_URL} alt="Yalda" className="w-full h-48 object-cover" />
+            <div className="p-6 space-y-2">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Thanks for your contribution in Yalda Party in Porto
+              </h3>
+              <p className="text-sm text-gray-500">Redirecting to the live results...</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
