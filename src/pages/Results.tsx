@@ -1,60 +1,17 @@
 import { useMemo } from 'react';
-import { dishes } from '../data/dishes';
 import { appsScriptConfig, sheetConfig } from '../config';
 import { useGoogleSheet } from '../hooks/useGoogleSheet';
-
-interface ResultRow {
-  name: string;
-  partner: string;
-  dishes: string;
-}
-
-const normalizeToken = (value: string) => value.trim().toLowerCase();
+import { summarizeResponses } from '../utils/responses';
 
 export default function Results() {
   const { endpoint, configured } = appsScriptConfig;
   const { rows, loading, error } = useGoogleSheet(endpoint && configured ? endpoint : undefined);
   const { columns } = sheetConfig;
 
-  const results: ResultRow[] = useMemo(
-    () =>
-      rows.map((row) => ({
-        name: (row[columns.name] ?? '').trim(),
-        partner: (row[columns.partner] ?? '').trim(),
-        dishes: (row[columns.dishes] ?? '').trim(),
-      })),
+  const { results, dishCounts, totalContributions } = useMemo(
+    () => summarizeResponses(rows, columns),
     [rows, columns],
   );
-
-  const dishCounts = useMemo(() => {
-    const counts = new Map<number, number>();
-    dishes.forEach((dish) => counts.set(dish.id, 0));
-
-    results.forEach((row) => {
-      row.dishes
-        .split(/[,،\n]/)
-        .map((token) => token.trim())
-        .filter(Boolean)
-        .forEach((value) => {
-          const match = dishes.find(
-            (dish) =>
-              normalizeToken(dish.en) === normalizeToken(value) ||
-              normalizeToken(dish.fa) === normalizeToken(value),
-          );
-
-          if (match) {
-            counts.set(match.id, (counts.get(match.id) ?? 0) + 1);
-          }
-        });
-    });
-
-    return dishes.map((dish) => ({
-      dish,
-      count: counts.get(dish.id) ?? 0,
-    }));
-  }, [results]);
-
-  const totalContributions = results.filter((row) => row.name).length;
   const sheetConfigured = Boolean(endpoint && configured);
 
   return (

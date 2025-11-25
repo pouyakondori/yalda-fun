@@ -1,7 +1,9 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { DishCard } from '../components/DishCard';
-import { dishes } from '../data/dishes';
-import { appsScriptConfig } from '../config';
+import { DEFAULT_DISH_CAPACITY, dishes } from '../data/dishes';
+import { appsScriptConfig, sheetConfig } from '../config';
+import { useGoogleSheet } from '../hooks/useGoogleSheet';
+import { summarizeResponses } from '../utils/responses';
 
 type SubmissionState = 'idle' | 'submitting' | 'success' | 'error';
 
@@ -18,6 +20,41 @@ export default function Home() {
   const [message, setMessage] = useState<string | null>(null);
 
   const { endpoint, configured } = appsScriptConfig;
+  const { columns } = sheetConfig;
+  const {
+    rows,
+    loading: availabilityLoading,
+    error: availabilityError,
+  } = useGoogleSheet(endpoint && configured ? endpoint : undefined);
+
+  const { dishCounts } = useMemo(
+    () => summarizeResponses(rows, columns),
+    [rows, columns],
+  );
+
+  const dishCountMap = useMemo(() => {
+    const map = new Map<number, number>();
+    dishCounts.forEach(({ dish, count }) => map.set(dish.id, count));
+    return map;
+  }, [dishCounts]);
+
+  const fullyBookedSet = useMemo(() => {
+    const set = new Set<number>();
+    dishCounts.forEach(({ dish, count }) => {
+      const limit = dish.capacity ?? DEFAULT_DISH_CAPACITY;
+      if (limit && count >= limit) {
+        set.add(dish.id);
+      }
+    });
+    return set;
+  }, [dishCounts]);
+
+  useEffect(() => {
+    if (!fullyBookedSet.size) {
+      return;
+    }
+    setSelectedDishIds((prev) => prev.filter((id) => !fullyBookedSet.has(id)));
+  }, [fullyBookedSet]);
 
   const selectedDishNames = useMemo(
     () =>
@@ -29,6 +66,9 @@ export default function Home() {
   );
 
   const toggleDish = (dishId: number) => {
+    if (fullyBookedSet.has(dishId)) {
+      return;
+    }
     setSelectedDishIds((prev) =>
       prev.includes(dishId) ? prev.filter((id) => id !== dishId) : [...prev, dishId],
     );
@@ -49,6 +89,11 @@ export default function Home() {
 
     if (!configured || !endpoint) {
       setMessage('Apps Script endpoint is missing. Ask the organizer to add it to the .env file.');
+      return;
+    }
+
+    if (selectedDishIds.some((id) => fullyBookedSet.has(id))) {
+      setMessage('One of your dishes just reached capacity. Please choose another option.');
       return;
     }
 
@@ -107,12 +152,29 @@ export default function Home() {
           </a>
           .
         </p>
+        <p className="text-gray-500 text-xs">
+          Each dish closes automatically once six households sign up so we keep the menu balanced.
+        </p>
       </div>
+
+      {fullyBookedSet.size > 0 && (
+        <div className="mt-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md px-3 py-2">
+          Some dishes are already full and have been disabled automatically.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         <section>
           <h2 className="text-base font-semibold text-gray-900">Dishes</h2>
-          <p className="text-sm text-gray-600">Pick one or more dishes you will prepare.</p>
+          <p className="text-sm text-gray-600">
+            Pick one or more dishes you will prepare.{' '}
+            {availabilityLoading ? 'Checking live availability...' : 'Availability updates in real time.'}
+          </p>
+          {availabilityError && (
+            <p className="text-xs text-red-600 mt-1">
+              Could not load the latest counts. Please refresh before submitting.
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
             {dishes.map((dish) => (
               <DishCard
@@ -120,6 +182,9 @@ export default function Home() {
                 dish={dish}
                 checked={selectedDishIds.includes(dish.id)}
                 onToggle={toggleDish}
+                count={dishCountMap.get(dish.id) ?? 0}
+                limit={dish.capacity ?? DEFAULT_DISH_CAPACITY}
+                disabled={fullyBookedSet.has(dish.id)}
               />
             ))}
           </div>

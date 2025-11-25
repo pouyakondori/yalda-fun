@@ -1,6 +1,6 @@
 # Yalda Party – Food Selection
 
-Simple two-page React/Vite app for coordinating our Yalda dinner dishes. The home page POSTs to a Google Apps Script endpoint, while the results page reads from the same sheet via the script’s JSON response.
+Simple two-page React/Vite app for coordinating our Yalda dinner dishes. The home page POSTs to a Google Apps Script endpoint, while the results page reads from the same sheet via the script’s JSON response. Each dish automatically closes after six households sign up, so the UI disables fully booked items in real time.
 
 ## Environment Variables
 
