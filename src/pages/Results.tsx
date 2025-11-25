@@ -12,8 +12,8 @@ interface ResultRow {
 const normalizeToken = (value: string) => value.trim().toLowerCase();
 
 export default function Results() {
-  const endpoint = appsScriptConfig.endpoint || undefined;
-  const { rows, loading, error } = useGoogleSheet(endpoint);
+  const { endpoint, configured } = appsScriptConfig;
+  const { rows, loading, error } = useGoogleSheet(endpoint && configured ? endpoint : undefined);
   const { columns } = sheetConfig;
 
   const results: ResultRow[] = useMemo(
@@ -55,7 +55,7 @@ export default function Results() {
   }, [results]);
 
   const totalContributions = results.filter((row) => row.name).length;
-  const sheetConfigured = Boolean(endpoint);
+  const sheetConfigured = Boolean(endpoint && configured);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 space-y-6">

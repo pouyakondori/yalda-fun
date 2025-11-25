@@ -1,5 +1,9 @@
+const rawAppsScriptEndpoint = import.meta.env.VITE_APPS_SCRIPT_URL ?? '';
+
 export const appsScriptConfig = {
-  endpoint: import.meta.env.VITE_APPS_SCRIPT_URL ?? '',
+  endpoint: rawAppsScriptEndpoint ? '/api/apps-script' : '',
+  rawEndpoint: rawAppsScriptEndpoint,
+  configured: Boolean(rawAppsScriptEndpoint),
 };
 
 export const sheetConfig = {

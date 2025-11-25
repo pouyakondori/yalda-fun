@@ -17,7 +17,7 @@ export default function Home() {
   const [status, setStatus] = useState<SubmissionState>('idle');
   const [message, setMessage] = useState<string | null>(null);
 
-  const endpoint = appsScriptConfig.endpoint;
+  const { endpoint, configured } = appsScriptConfig;
 
   const selectedDishNames = useMemo(
     () =>
@@ -47,7 +47,7 @@ export default function Home() {
       return;
     }
 
-    if (!endpoint) {
+    if (!configured || !endpoint) {
       setMessage('Apps Script endpoint is missing. Ask the organizer to add it to the .env file.');
       return;
     }
