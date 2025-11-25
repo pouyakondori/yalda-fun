@@ -1,21 +1,28 @@
-# React + TypeScript + Vite
+# Yalda Party – Food Selection
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Simple two-page React/Vite app for coordinating our Yalda dinner dishes. The home page submits to a Google Form, while the results page reads from the connected Google Sheet.
 
-While this project uses React, Vite supports many popular JS frameworks. [See all the supported frameworks](https://vitejs.dev/guide/#scaffolding-your-first-vite-project).
+## Environment Variables
 
-## Deploy Your Own
+Create a `.env` file (or configure in Vercel) with the following keys:
 
-Deploy your own Vite project with Vercel.
+```
+VITE_GOOGLE_FORM_ID=FORM_ID_FROM_URL
+VITE_GOOGLE_FORM_NAME_ENTRY=123456
+VITE_GOOGLE_FORM_PARTNER_ENTRY=987654  # optional
+VITE_GOOGLE_FORM_DISHES_ENTRY=456789
+VITE_GOOGLE_SHEET_ID=SHEET_ID_FROM_URL
+VITE_GOOGLE_SHEET_NAME_COLUMN=Name
+VITE_GOOGLE_SHEET_PARTNER_COLUMN=Partner
+VITE_GOOGLE_SHEET_DISHES_COLUMN=Selected Dishes
+```
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/examples/tree/main/framework-boilerplates/vite-react&template=vite-react)
+- The form entry values are the numeric identifiers from the Google Form inputs (add the digits only — the app will prefix `entry.` for you).
+- The sheet column names should match the header titles inside the connected Google Sheet.
 
-_Live Example: https://vite-react-example.vercel.app_
+Once those are configured you can run:
 
-### Deploying From Your Terminal
-
-You can deploy your new Vite project with a single command from your terminal using [Vercel CLI](https://vercel.com/download):
-
-```shell
-$ vercel
+```bash
+npm install
+npm run dev
 ```
