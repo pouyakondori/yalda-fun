@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { dishes } from '../data/dishes';
-import { buildSheetCsvUrl, googleSheetConfig } from '../config';
+import { appsScriptConfig, sheetConfig } from '../config';
 import { useGoogleSheet } from '../hooks/useGoogleSheet';
 
 interface ResultRow {
@@ -12,9 +12,9 @@ interface ResultRow {
 const normalizeToken = (value: string) => value.trim().toLowerCase();
 
 export default function Results() {
-  const csvUrl = buildSheetCsvUrl(googleSheetConfig.sheetId) ?? undefined;
-  const { rows, loading, error } = useGoogleSheet(csvUrl);
-  const { columns } = googleSheetConfig;
+  const endpoint = appsScriptConfig.endpoint || undefined;
+  const { rows, loading, error } = useGoogleSheet(endpoint);
+  const { columns } = sheetConfig;
 
   const results: ResultRow[] = useMemo(
     () =>
@@ -55,7 +55,7 @@ export default function Results() {
   }, [results]);
 
   const totalContributions = results.filter((row) => row.name).length;
-  const sheetConfigured = Boolean(csvUrl);
+  const sheetConfigured = Boolean(endpoint);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 space-y-6">
@@ -69,8 +69,8 @@ export default function Results() {
 
       {!sheetConfigured && (
         <div className="bg-red-50 text-red-700 border border-red-200 rounded-md p-4 text-sm">
-          Google Sheet is not configured yet. Set <code>VITE_GOOGLE_SHEET_ID</code> in your
-          environment to display live data.
+          Google Apps Script endpoint is not configured yet. Set <code>VITE_APPS_SCRIPT_URL</code> in
+          your environment to display live data.
         </div>
       )}
 

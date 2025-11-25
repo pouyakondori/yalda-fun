@@ -1,7 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { DishCard } from '../components/DishCard';
 import { dishes } from '../data/dishes';
-import { buildFormAction, googleFormConfig } from '../config';
+import { appsScriptConfig } from '../config';
 
 type SubmissionState = 'idle' | 'submitting' | 'success' | 'error';
 
@@ -17,8 +17,7 @@ export default function Home() {
   const [status, setStatus] = useState<SubmissionState>('idle');
   const [message, setMessage] = useState<string | null>(null);
 
-  const formAction = buildFormAction(googleFormConfig.formId);
-  const { name: nameEntry, partner: partnerEntry, dishes: dishesEntry } = googleFormConfig.entries;
+  const endpoint = appsScriptConfig.endpoint;
 
   const selectedDishNames = useMemo(
     () =>
@@ -48,29 +47,32 @@ export default function Home() {
       return;
     }
 
-    if (!formAction || !nameEntry || !dishesEntry) {
-      setMessage('Google Form settings are missing. Ask the organizer to add the IDs.');
+    if (!endpoint) {
+      setMessage('Apps Script endpoint is missing. Ask the organizer to add it to the .env file.');
       return;
     }
 
-    const payload = new URLSearchParams();
-    payload.append(nameEntry, name.trim());
-
-    if (partnerEntry && partnerName.trim()) {
-      payload.append(partnerEntry, partnerName.trim());
-    }
-
-    payload.append(dishesEntry, selectedDishNames);
+    const payload = {
+      name: name.trim(),
+      partner: partnerName.trim(),
+      selectedDishes: selectedDishNames,
+    };
 
     try {
       setStatus('submitting');
       setMessage('Sending your RSVP...');
 
-      await fetch(formAction, {
+      const response = await fetch(endpoint, {
         method: 'POST',
-        mode: 'no-cors',
-        body: payload,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
+
+      if (!response.ok) {
+        throw new Error('Apps Script rejected the submission');
+      }
 
       setStatus('success');
       setMessage('Thanks! Your dish selection has been shared.');
@@ -166,7 +168,7 @@ export default function Home() {
           className="w-full bg-rose-500 hover:bg-rose-600 text-white rounded-md py-2 text-sm font-medium transition-colors disabled:opacity-60"
           disabled={status === 'submitting'}
         >
-          {status === 'submitting' ? 'Submitting...' : 'Submit to Google Form'}
+          {status === 'submitting' ? 'Submitting...' : 'Submit RSVP'}
         </button>
       </form>
     </div>

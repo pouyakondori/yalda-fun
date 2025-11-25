@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react';
-import Papa from 'papaparse';
 
 export interface SheetRow {
   [key: string]: string | undefined;
 }
 
-export function useGoogleSheet(csvUrl?: string) {
+type AppsScriptResponse = (string | number | boolean | null)[][];
+
+const toString = (value: string | number | boolean | null | undefined) =>
+  typeof value === 'string' ? value : value == null ? '' : String(value);
+
+export function useGoogleSheet(endpoint?: string) {
   const [rows, setRows] = useState<SheetRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!csvUrl) {
+    if (!endpoint) {
       setRows([]);
       return;
     }
@@ -20,24 +24,41 @@ export function useGoogleSheet(csvUrl?: string) {
     setLoading(true);
     setError(null);
 
-    fetch(csvUrl)
+    fetch(endpoint, {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
       .then((res) => {
         if (!res.ok) {
           throw new Error('Unable to load responses');
         }
-        return res.text();
+        return res.json() as Promise<AppsScriptResponse>;
       })
-      .then((text) => {
+      .then((matrix) => {
         if (!isMounted) {
           return;
         }
+        if (!Array.isArray(matrix) || matrix.length === 0) {
+          setRows([]);
+          return;
+        }
 
-        const parsed = Papa.parse<SheetRow>(text, {
-          header: true,
-          skipEmptyLines: true,
+        const [headerRow, ...dataRows] = matrix;
+        const headers = headerRow.map((cell, index) => {
+          const label = toString(cell).trim();
+          return label || `Column ${index + 1}`;
         });
 
-        setRows(parsed.data);
+        const parsed = dataRows.map((row) => {
+          const entry: SheetRow = {};
+          headers.forEach((header, index) => {
+            entry[header] = toString(row[index]);
+          });
+          return entry;
+        });
+
+        setRows(parsed);
       })
       .catch((err: Error) => {
         if (!isMounted) {
@@ -54,7 +75,7 @@ export function useGoogleSheet(csvUrl?: string) {
     return () => {
       isMounted = false;
     };
-  }, [csvUrl]);
+  }, [endpoint]);
 
   return { rows, loading, error };
 }
